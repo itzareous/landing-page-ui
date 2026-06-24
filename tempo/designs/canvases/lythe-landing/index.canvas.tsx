@@ -12,7 +12,7 @@ export default page;
 export const Desktop: TempoStoryboard = {
   render: () => <Desktop2 />,
   name: "Desktop — Full Page",
-  layout: { x: 0, y: 0, width: 1440, height: 6644 },
+  layout: { x: 0, y: 0, width: 100, height: 12268 },
 };
 
 export const Mobile: TempoStoryboard = {

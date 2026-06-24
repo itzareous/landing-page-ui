@@ -1,6 +1,42 @@
 /* Lythe — landing page redesign ("Signal Lab" direction)
    Self-contained, responsive. Instrument Serif + Space Grotesk + JetBrains Mono.
-   Amber brand thread; mint = voice/live signal; sky = chat. CSS-first motion. */
+   Amber brand thread; mint = voice/live signal; sky = chat.
+   Motion: CSS-first. Scroll-reveal (IntersectionObserver) + staggered groups,
+   characterful hover/press, ambient signal motion, full reduced-motion path. */
+import { useEffect, useRef } from "react";
+
+/* ---------------------------------------------------------------- reveal */
+function useReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const root = ref.current;
+    if (!root) return;
+    const els = Array.from(root.querySelectorAll("[data-reveal],[data-stagger]"));
+    if (!("IntersectionObserver" in window)) {
+      els.forEach((e) => e.classList.add("in"));
+      return;
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((en) => {
+          if (en.isIntersecting) {
+            en.target.classList.add("in");
+            io.unobserve(en.target);
+          }
+        });
+      },
+      { threshold: 0.1, rootMargin: "0px 0px -6% 0px" }
+    );
+    els.forEach((e) => io.observe(e));
+    // safety net: never leave content hidden if the observer misbehaves
+    const t = window.setTimeout(() => els.forEach((e) => e.classList.add("in")), 1700);
+    return () => {
+      io.disconnect();
+      window.clearTimeout(t);
+    };
+  }, []);
+  return ref;
+}
 
 /* ---------------------------------------------------------------- icons */
 function IArrow() {
@@ -92,6 +128,9 @@ export function LytheStyles() {
   --mint:#5FE3C0;--mint-soft:rgba(95,227,192,.12);
   --sky:#7CC4FF;--sky-soft:rgba(124,196,255,.12);
   --radius:16px;--shadow:0 40px 90px -28px rgba(0,0,0,.8);
+  --ease-out:cubic-bezier(0.23,1,0.32,1);
+  --ease-in-out:cubic-bezier(0.77,0,0.175,1);
+  --ease-spring:cubic-bezier(0.34,1.4,0.5,1);
   background:var(--bg);color:var(--text);
   font-family:'Space Grotesk',-apple-system,system-ui,sans-serif;font-size:16px;line-height:1.62;
   position:relative;min-height:100vh;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;
@@ -100,6 +139,7 @@ export function LytheStyles() {
 .lythe-root h1,.lythe-root h2,.lythe-root h3,.lythe-root h4,.lythe-root p{margin:0;}
 .lythe-root a{color:inherit;text-decoration:none;}
 .lythe-root button{font-family:inherit;}
+.lythe-root a:focus-visible,.lythe-root button:focus-visible{outline:2px solid var(--amber);outline-offset:3px;border-radius:8px;}
 .lythe-bg{position:absolute;inset:0;z-index:0;pointer-events:none;
   background:
     radial-gradient(58% 38% at 50% -6%, rgba(245,179,60,.18), transparent 72%),
@@ -127,13 +167,11 @@ export function LytheStyles() {
 .kicker{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);}
 
 /* buttons */
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:600;font-size:15px;line-height:1;padding:14px 22px;border-radius:12px;border:1px solid transparent;cursor:pointer;transition:transform .18s cubic-bezier(.2,.7,.2,1),box-shadow .25s,background .2s,border-color .2s,color .2s;white-space:nowrap;}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:9px;font-weight:600;font-size:15px;line-height:1;padding:14px 22px;border-radius:12px;border:1px solid transparent;cursor:pointer;transition:transform .18s var(--ease-out),box-shadow .25s var(--ease-out),background .2s,border-color .2s,color .2s;white-space:nowrap;}
 .btn-amber{background:linear-gradient(180deg,#FBC25A,var(--amber-2));color:#241606;box-shadow:0 12px 30px -10px rgba(245,179,60,.55),inset 0 1px 0 rgba(255,255,255,.45);}
-.btn-amber:hover{transform:translateY(-2px);box-shadow:0 18px 44px -10px rgba(245,179,60,.7),inset 0 1px 0 rgba(255,255,255,.5);}
 .btn-ghost{background:var(--surface);color:var(--text);border-color:var(--line-2);}
-.btn-ghost:hover{background:var(--surface-2);border-color:rgba(255,255,255,.3);transform:translateY(-2px);}
-.btn svg{transition:transform .2s;}
-.btn-amber:hover svg{transform:translateX(3px);}
+.btn svg{transition:transform .2s var(--ease-out);}
+.btn:active{transform:scale(.97);transition-duration:.1s;}
 
 /* nav */
 .nav{position:sticky;top:0;z-index:60;backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);background:rgba(8,9,11,.62);border-bottom:1px solid var(--line);}
@@ -144,11 +182,11 @@ export function LytheStyles() {
 .nav-links{display:flex;gap:27px;}
 .nav-links a{font-size:14.5px;color:var(--dim);transition:color .18s;position:relative;}
 .nav-links a:hover{color:var(--text);}
+.nav-links a::after{content:"";position:absolute;left:0;right:100%;bottom:-5px;height:1.5px;background:var(--amber);border-radius:2px;transition:right .3s var(--ease-out);}
 .nav-right{margin-left:auto;display:flex;align-items:center;gap:14px;}
-.gh-pill{display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--dim);padding:8px 13px;border:1px solid var(--line);border-radius:999px;background:var(--surface);transition:.18s;}
-.gh-pill:hover{border-color:var(--line-2);color:var(--text);}
+.gh-pill{display:inline-flex;align-items:center;gap:8px;font-family:'JetBrains Mono',monospace;font-size:12.5px;color:var(--dim);padding:8px 13px;border:1px solid var(--line);border-radius:999px;background:var(--surface);transition:border-color .18s,color .18s,transform .16s var(--ease-out);}
 .gh-pill b{color:var(--text);font-weight:600;}
-.signin{font-size:14.5px;color:var(--dim);}
+.signin{font-size:14.5px;color:var(--dim);transition:color .15s;}
 .signin:hover{color:var(--text);}
 .burger{display:none;flex-direction:column;gap:5px;padding:8px;border:1px solid var(--line);border-radius:9px;background:var(--surface);}
 .burger i{width:18px;height:1.6px;background:var(--dim);display:block;border-radius:2px;}
@@ -159,9 +197,9 @@ export function LytheStyles() {
 .hero h1{margin-top:22px;}
 .hero .lede{margin-top:24px;}
 .hero-cta{display:flex;flex-wrap:wrap;gap:13px;margin-top:34px;}
-.install{display:inline-flex;align-items:center;gap:12px;margin-top:24px;font-family:'JetBrains Mono',monospace;font-size:13.5px;color:var(--dim);background:var(--bg-1);border:1px solid var(--line);border-radius:11px;padding:11px 14px;}
-.install .pr{color:var(--mint);} .install .cp{margin-left:4px;color:var(--faint);display:inline-flex;cursor:pointer;}
-.install .cp:hover{color:var(--dim);}
+.install{display:inline-flex;align-items:center;gap:12px;margin-top:24px;font-family:'JetBrains Mono',monospace;font-size:13.5px;color:var(--dim);background:var(--bg-1);border:1px solid var(--line);border-radius:11px;padding:11px 14px;transition:border-color .2s;}
+.install:hover{border-color:var(--line-2);}
+.install .pr{color:var(--mint);} .install .cp{margin-left:4px;color:var(--faint);display:inline-flex;cursor:pointer;transition:color .15s;} .install .cp:hover{color:var(--dim);}
 
 /* agent console */
 .console{position:relative;border-radius:18px;background:linear-gradient(180deg,rgba(20,24,29,.9),rgba(11,13,16,.92));border:1px solid var(--line-2);box-shadow:var(--shadow);overflow:hidden;}
@@ -194,8 +232,7 @@ export function LytheStyles() {
 .logos-in{padding:42px 0 38px;}
 .logos-label{text-align:center;margin-bottom:26px;}
 .logos-row{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:30px 52px;}
-.logo{display:inline-flex;align-items:center;gap:10px;color:var(--faint);font-weight:600;font-size:18px;letter-spacing:-.01em;transition:color .2s,opacity .2s;opacity:.9;}
-.logo:hover{color:var(--dim);opacity:1;}
+.logo{display:inline-flex;align-items:center;gap:10px;color:var(--faint);font-weight:600;font-size:18px;letter-spacing:-.01em;transition:color .2s,opacity .2s,transform .2s var(--ease-out);opacity:.9;}
 .logo svg{opacity:.8;}
 
 /* splits */
@@ -216,10 +253,9 @@ export function LytheStyles() {
 
 /* generic panel / cards */
 .panel{position:relative;background:linear-gradient(180deg,rgba(18,22,27,.8),rgba(11,13,16,.85));border:1px solid var(--line-2);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
-.glow{position:absolute;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0;}
+.glow{position:absolute;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0;animation:glowpulse 7s ease-in-out infinite alternate;}
 .cards{display:grid;gap:14px;}
-.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;transition:transform .2s,border-color .2s,background .2s;}
-.card:hover{transform:translateY(-3px);border-color:var(--line-2);background:var(--surface-2);}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px;transition:transform .22s var(--ease-out),border-color .22s,background .22s;}
 .card .ci{width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:13px;}
 .card h4{font-size:15.5px;font-weight:600;}
 .card p{font-size:13.6px;color:var(--muted);margin-top:6px;}
@@ -244,12 +280,11 @@ export function LytheStyles() {
 .replay{display:grid;grid-template-columns:.92fr 1.08fr;gap:0;}
 .replay-runs{border-right:1px solid var(--line);padding:18px;}
 .replay-runs .rl-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
-.run{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:10px;font-size:13px;color:var(--dim);}
-.run:hover{background:var(--surface);}
-.run.active{background:var(--amber-soft);border:1px solid rgba(245,179,60,.25);}
+.run{display:flex;align-items:center;gap:11px;padding:10px 11px;border-radius:10px;font-size:13px;color:var(--dim);transition:background .18s;}
 .run .rid{font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--muted);}
 .run .delta{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:11.5px;}
 .delta.up{color:var(--mint);} .delta.down{color:#ff7a6b;}
+.run.active{background:var(--amber-soft);border:1px solid rgba(245,179,60,.25);}
 .replay-detail{padding:18px;}
 .metrics4{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:2px;}
 .metric{background:var(--bg-1);border:1px solid var(--line);border-radius:12px;padding:14px;}
@@ -273,15 +308,13 @@ export function LytheStyles() {
 .scenter .sn-s{font-family:'JetBrains Mono',monospace;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);margin-top:4px;}
 .arrow-c{color:var(--faint);display:flex;justify-content:center;}
 .intg-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-top:30px;}
-.intg{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 12px;display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center;transition:.2s;}
-.intg:hover{border-color:var(--line-2);background:var(--surface-2);transform:translateY(-2px);}
+.intg{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:15px 12px;display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center;transition:border-color .2s,background .2s,transform .2s var(--ease-out);}
 .intg .ig-m{width:30px;height:30px;border-radius:9px;background:var(--bg-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:13px;color:var(--dim);}
 .intg .ig-n{font-size:12.5px;color:var(--muted);}
 
 /* open source */
 .repos{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:8px;}
-.repo{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;transition:.2s;}
-.repo:hover{border-color:var(--line-2);transform:translateY(-2px);background:var(--surface-2);}
+.repo{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px;transition:border-color .2s,background .2s,transform .2s var(--ease-out);}
 .repo .rn{display:flex;align-items:center;gap:9px;font-family:'JetBrains Mono',monospace;font-size:14px;color:var(--text);font-weight:600;}
 .repo .rn .mit{margin-left:auto;font-size:10.5px;color:var(--muted);border:1px solid var(--line);border-radius:6px;padding:2px 7px;letter-spacing:.05em;}
 .repo .rd{font-size:13px;color:var(--muted);margin:10px 0 14px;}
@@ -290,8 +323,9 @@ export function LytheStyles() {
 .repo .lang i{width:9px;height:9px;border-radius:50%;}
 .contrib{display:flex;align-items:center;gap:14px;margin-top:26px;}
 .avatars{display:flex;}
-.avatars .ax{width:34px;height:34px;border-radius:50%;border:2px solid var(--bg);margin-left:-10px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#1a1206;}
+.avatars .ax{width:34px;height:34px;border-radius:50%;border:2px solid var(--bg);margin-left:-10px;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;color:#1a1206;transition:transform .2s var(--ease-out);}
 .avatars .ax:first-child{margin-left:0;}
+.avatars:hover .ax{margin-left:0;}
 
 /* final cta */
 .finalcta{position:relative;text-align:center;padding:128px 0;overflow:hidden;}
@@ -304,17 +338,14 @@ export function LytheStyles() {
 .foot-brand .brand{margin-bottom:14px;}
 .foot-brand p{font-size:13.5px;color:var(--muted);max-width:30ch;}
 .foot-status{display:inline-flex;align-items:center;gap:8px;margin-top:16px;font-family:'JetBrains Mono',monospace;font-size:11.5px;color:var(--dim);border:1px solid var(--line);border-radius:999px;padding:6px 12px;}
-.foot-status .pulse{width:7px;height:7px;border-radius:50%;background:var(--mint);}
+.foot-status .pulse{width:7px;height:7px;border-radius:50%;background:var(--mint);box-shadow:0 0 0 0 rgba(95,227,192,.6);animation:pulse 2.4s infinite;}
 .foot-soc{display:flex;gap:10px;margin-top:16px;}
-.foot-soc a{width:34px;height:34px;border-radius:9px;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--dim);transition:.18s;}
-.foot-soc a:hover{color:var(--text);border-color:var(--line-2);}
+.foot-soc a{width:34px;height:34px;border-radius:9px;background:var(--surface);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--dim);transition:color .18s,border-color .18s,transform .16s var(--ease-out);}
 .foot-col h5{font-size:12px;font-family:'JetBrains Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:14px;}
-.foot-col a{display:block;font-size:13.6px;color:var(--muted);padding:5px 0;transition:color .15s;}
-.foot-col a:hover{color:var(--text);}
+.foot-col a{display:block;font-size:13.6px;color:var(--muted);padding:5px 0;transition:color .15s,transform .15s var(--ease-out);}
 .foot-word{font-family:'Instrument Serif',serif;font-size:clamp(5rem,17vw,15rem);line-height:.8;color:rgba(255,255,255,.04);text-align:center;padding:8px 0 0;letter-spacing:-.02em;user-select:none;}
 .foot-bot{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:22px 0 30px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);flex-wrap:wrap;}
 .foot-bot .fb-legal{display:flex;gap:20px;flex-wrap:wrap;}
-.foot-bot a:hover{color:var(--dim);}
 
 /* shared wave */
 .wave{display:flex;align-items:flex-end;gap:3px;height:62px;color:var(--mint);}
@@ -328,14 +359,54 @@ export function LytheStyles() {
 .codewin-body{margin:0;padding:16px 18px;overflow-x:auto;font-family:'JetBrains Mono',monospace;font-size:12.8px;line-height:1.75;color:var(--dim);}
 .t-key{color:var(--sky);} .t-str{color:var(--amber);} .t-fn{color:var(--mint);} .t-com{color:var(--faint);font-style:italic;} .t-pn{color:var(--muted);}
 
-/* reveal (hero stagger, on-load, settles visible) */
-.rv{animation:rise .85s cubic-bezier(.2,.7,.2,1) both;}
+/* hero on-load stagger */
+.rv{animation:rise .85s var(--ease-out) both;}
+.rv-fade{animation:fadein .9s var(--ease-out) both;}
 .d1{animation-delay:.05s;}.d2{animation-delay:.14s;}.d3{animation-delay:.23s;}.d4{animation-delay:.32s;}.d5{animation-delay:.42s;}.d6{animation-delay:.54s;}
 
 @keyframes rise{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:none;}}
+@keyframes fadein{from{opacity:0;}to{opacity:1;}}
 @keyframes wave{0%,100%{transform:scaleY(.34);}50%{transform:scaleY(1);}}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(95,227,192,.55);}70%{box-shadow:0 0 0 9px rgba(95,227,192,0);}100%{box-shadow:0 0 0 0 rgba(95,227,192,0);}}
 @keyframes blink{0%,50%{opacity:1;}51%,100%{opacity:0;}}
+@keyframes glowpulse{from{opacity:.65;}to{opacity:1;}}
+@keyframes drift{from{transform:translate3d(0,0,0) scale(1);}to{transform:translate3d(0,-1.4%,0) scale(1.045);}}
+
+/* ---- scroll reveal (IntersectionObserver toggles .in) ---- */
+@media (prefers-reduced-motion: no-preference){
+  .lythe-bg{animation:drift 26s ease-in-out infinite alternate;}
+  [data-reveal]{opacity:0;transform:translateY(24px);transition:opacity .72s var(--ease-out),transform .72s var(--ease-out),filter .72s var(--ease-out);}
+  [data-reveal="blur"]{filter:blur(7px);}
+  [data-reveal].in{opacity:1;transform:none;filter:none;}
+  [data-stagger]>*{opacity:0;transform:translateY(16px);transition:opacity .6s var(--ease-out),transform .6s var(--ease-out);}
+  [data-stagger].in>*{opacity:1;transform:none;}
+  [data-stagger].in>*:nth-child(1){transition-delay:.03s;}
+  [data-stagger].in>*:nth-child(2){transition-delay:.09s;}
+  [data-stagger].in>*:nth-child(3){transition-delay:.15s;}
+  [data-stagger].in>*:nth-child(4){transition-delay:.21s;}
+  [data-stagger].in>*:nth-child(5){transition-delay:.27s;}
+  [data-stagger].in>*:nth-child(6){transition-delay:.33s;}
+  [data-stagger].in>*:nth-child(7){transition-delay:.39s;}
+  [data-stagger].in>*:nth-child(8){transition-delay:.45s;}
+  [data-stagger].in>*:nth-child(n+9){transition-delay:.5s;}
+}
+
+/* ---- press + hover (hover gated to fine pointers) ---- */
+.btn:active{transform:scale(.97);}
+@media (hover:hover) and (pointer:fine){
+  .btn-amber:hover{transform:translateY(-2px);box-shadow:0 18px 44px -10px rgba(245,179,60,.7),inset 0 1px 0 rgba(255,255,255,.5);}
+  .btn-amber:hover svg{transform:translateX(3px);}
+  .btn-ghost:hover{background:var(--surface-2);border-color:rgba(255,255,255,.3);transform:translateY(-2px);}
+  .gh-pill:hover{border-color:var(--line-2);color:var(--text);transform:translateY(-1px);}
+  .nav-links a:hover::after{right:0;}
+  .logo:hover{color:var(--dim);opacity:1;transform:translateY(-2px);}
+  .card:hover{transform:translateY(-3px);border-color:var(--line-2);background:var(--surface-2);}
+  .intg:hover{border-color:var(--line-2);background:var(--surface-2);transform:translateY(-2px);}
+  .repo:hover{border-color:var(--line-2);background:var(--surface-2);transform:translateY(-2px);}
+  .run:hover{background:var(--surface);}
+  .foot-soc a:hover{color:var(--text);border-color:var(--line-2);transform:translateY(-2px);}
+  .foot-col a:hover{color:var(--text);transform:translateX(3px);}
+}
 
 /* ---- responsive ---- */
 @media (max-width:980px){
@@ -368,6 +439,13 @@ export function LytheStyles() {
   .logo{font-size:15px;}
   .con-body{padding:16px 14px 18px;}
 }
+
+/* ---- reduced motion: keep it calm, keep it visible ---- */
+@media (prefers-reduced-motion: reduce){
+  .rv,.rv-fade,.wb,.brand .mk i,.pulse,.cursor,.lythe-bg,.glow{animation:none !important;}
+  [data-reveal],[data-stagger]>*{opacity:1 !important;transform:none !important;filter:none !important;transition:none !important;}
+  .lythe-root *{scroll-behavior:auto !important;}
+}
 `}</style>
     </>
   );
@@ -389,7 +467,7 @@ function Brand() {
 }
 function Nav() {
   return (
-    <nav className="nav">
+    <nav className="nav rv-fade">
       <div className="lx nav-in">
         <Brand />
         <div className="nav-links">
@@ -485,7 +563,7 @@ function LogoMark({ shape, c }: { shape: string; c: string }) {
   if (shape === "dia") return (<svg {...common} fill={c}><path d="M8 1l7 7-7 7-7-7z" /></svg>);
   if (shape === "hex") return (<svg {...common} fill={c}><path d="M8 1l6 3.5v7L8 15l-6-3.5v-7z" /></svg>);
   if (shape === "dot") return (<svg {...common} fill={c}><circle cx="8" cy="8" r="5" /><circle cx="8" cy="8" r="2" fill="#07080A" /></svg>);
-  return (<svg {...common} fill={c}><path d="M2 8h12M8 2v12" stroke={c} strokeWidth="2" /></svg>);
+  return (<svg {...common} fill="none" stroke={c} strokeWidth="2"><path d="M2 8h12M8 2v12" /></svg>);
 }
 function LogoStrip() {
   const logos = [
@@ -495,8 +573,8 @@ function LogoStrip() {
   return (
     <section className="logos">
       <div className="lx logos-in">
-        <div className="logos-label kicker">Powering agents in production at</div>
-        <div className="logos-row">
+        <div className="logos-label kicker" data-reveal>Powering agents in production at</div>
+        <div className="logos-row" data-stagger>
           {logos.map((l) => (
             <span className="logo" key={l.n}><LogoMark shape={l.s} c="currentColor" /> {l.n}</span>
           ))}
@@ -511,20 +589,20 @@ function VoiceSection() {
   return (
     <section className="section" id="voice">
       <div className="lx split split-wide">
-        <div className="s-text s-head">
+        <div className="s-text s-head" data-stagger>
           <span className="eyebrow m">Voice Agent SDK</span>
           <h2 className="h2">Conversations that <span className="em-mint">feel</span> real-time.</h2>
           <p className="lede">
             Bidirectional audio with sub-300ms turn-taking. Native barge-in, endpointing,
             and STT/TTS you can swap per call — without re-architecting your stack.
           </p>
-          <div className="flist">
+          <div className="flist" data-stagger>
             <div className="fitem"><span className="fi-ic"><ICheck /></span><div><h4>Streaming pipeline</h4><p>Frame-level audio in and out over WebRTC or WebSocket — no batching, no buffering tax.</p></div></div>
             <div className="fitem"><span className="fi-ic"><ICheck /></span><div><h4>Turn-taking &amp; barge-in</h4><p>Interrupt-aware VAD stops the agent the instant the user speaks back.</p></div></div>
             <div className="fitem"><span className="fi-ic"><ICheck /></span><div><h4>Pluggable STT / TTS</h4><p>Deepgram, ElevenLabs, Cartesia, or bring your own — swap providers per session.</p></div></div>
           </div>
         </div>
-        <div className="s-visual">
+        <div className="s-visual" data-reveal="blur">
           <div className="panel" style={{ padding: "22px" }}>
             <div className="glow" style={{ width: "220px", height: "220px", background: "rgba(95,227,192,.18)", top: "-40px", right: "-30px" }} />
             <div style={{ position: "relative", zIndex: 1 }}>
@@ -550,7 +628,7 @@ function ChatSection() {
   return (
     <section className="section" id="chat">
       <div className="lx split split-wide">
-        <div className="s-visual">
+        <div className="s-visual" data-reveal="blur">
           <div className="panel chatwin">
             <div className="glow" style={{ width: "220px", height: "220px", background: "rgba(124,196,255,.16)", bottom: "-50px", left: "-30px" }} />
             <div style={{ position: "relative", zIndex: 1 }}>
@@ -571,14 +649,14 @@ function ChatSection() {
             </div>
           </div>
         </div>
-        <div className="s-text s-head">
+        <div className="s-text s-head" data-stagger>
           <span className="eyebrow s">Chat Agent SDK</span>
           <h2 className="h2">One runtime. <span className="em-sky">Every</span> channel.</h2>
           <p className="lede">
             Reliable conversations across Slack, web, WhatsApp, and SMS. Durable delivery,
             idempotent tool calls, and conversation-level observability — out of the box.
           </p>
-          <div className="cards" style={{ gridTemplateColumns: "1fr 1fr", marginTop: "30px" }}>
+          <div className="cards" data-stagger style={{ gridTemplateColumns: "1fr 1fr", marginTop: "30px" }}>
             <div className="card"><div className="ci" style={{ background: "var(--sky-soft)", color: "var(--sky)" }}><ITerminal /></div><h4>Channel adapters</h4><p>Slack, web, WhatsApp, SMS &amp; Discord behind one API.</p></div>
             <div className="card"><div className="ci" style={{ background: "var(--sky-soft)", color: "var(--sky)" }}><ICheck c="var(--sky)" /></div><h4>Reliable delivery</h4><p>At-least-once with retries, ordering &amp; dedupe.</p></div>
             <div className="card"><div className="ci" style={{ background: "var(--sky-soft)", color: "var(--sky)" }}><ITerminal /></div><h4>Tool-call reliability</h4><p>Typed tools, automatic retries, guardrails.</p></div>
@@ -595,7 +673,7 @@ function EvalSection() {
   const traceBars = Array.from({ length: 40 });
   return (
     <section className="section" id="eval">
-      <div className="lx" style={{ textAlign: "center", marginBottom: "44px" }}>
+      <div className="lx" style={{ textAlign: "center", marginBottom: "44px" }} data-stagger>
         <span className="eyebrow" style={{ justifyContent: "center" }}>Evaluation &amp; Observability</span>
         <h2 className="h2" style={{ marginTop: "18px" }}>Replay production. <span className="em-amber">Before</span> you ship.</h2>
         <p className="lede" style={{ margin: "20px auto 0" }}>
@@ -604,7 +682,7 @@ function EvalSection() {
         </p>
       </div>
       <div className="lx">
-        <div className="panel replay">
+        <div className="panel replay" data-reveal="blur">
           <div className="replay-runs">
             <div className="rl-h"><span className="kicker">Production runs</span><span className="kicker">replay ▸</span></div>
             <div className="run active"><span className="rid">run_9c1</span> checkout flow <span className="delta up">+4.1%</span></div>
@@ -635,7 +713,7 @@ function EvalSection() {
             </div>
           </div>
         </div>
-        <div className="statrow">
+        <div className="statrow" data-stagger>
           <div className="stat"><div className="sv">94.2<span className="u">%</span></div><div className="sl">avg. task success across replayed suites</div></div>
           <div className="stat"><div className="sv">12.4<span className="u">M</span></div><div className="sl">production runs replayed to date</div></div>
           <div className="stat"><div className="sv">−38<span className="u">%</span></div><div className="sl">latency regressions caught pre-ship</div></div>
@@ -657,7 +735,7 @@ function IntegrationsSection() {
   return (
     <section className="section" id="integrations">
       <div className="lx">
-        <div style={{ maxWidth: "640px" }}>
+        <div style={{ maxWidth: "640px" }} data-stagger>
           <span className="eyebrow">Integrations</span>
           <h2 className="h2" style={{ marginTop: "18px" }}>Drops into the stack you <span className="em-amber">already</span> run.</h2>
           <p className="lede" style={{ marginTop: "20px" }}>
@@ -665,7 +743,7 @@ function IntegrationsSection() {
             and telemetry. No rip-and-replace, no lock-in.
           </p>
         </div>
-        <div className="stackdiag">
+        <div className="stackdiag" data-reveal>
           <div className="stackcol">
             <div className="stacktag">channels</div>
             <div className="snode">Slack</div><div className="snode">Web &amp; mobile</div><div className="snode">Phone &amp; SMS</div>
@@ -681,7 +759,7 @@ function IntegrationsSection() {
             <div className="snode">Models &amp; LLMs</div><div className="snode">Vector &amp; data</div><div className="snode">Telemetry</div>
           </div>
         </div>
-        <div className="intg-grid">
+        <div className="intg-grid" data-stagger>
           {tiles.map((t) => (
             <div className="intg" key={t.n}><span className="ig-m">{t.m}</span><span className="ig-n">{t.n}</span></div>
           ))}
@@ -696,7 +774,7 @@ function OpenSourceSection() {
   return (
     <section className="section" id="oss">
       <div className="lx split">
-        <div className="s-text s-head">
+        <div className="s-text s-head" data-stagger>
           <span className="eyebrow">Open source</span>
           <h2 className="h2">Built in the <span className="em-amber">open.</span></h2>
           <p className="lede">
@@ -718,7 +796,7 @@ function OpenSourceSection() {
           </div>
         </div>
         <div className="s-visual">
-          <div className="repos">
+          <div className="repos" data-stagger>
             <div className="repo"><div className="rn">@lythe/voice <span className="mit">MIT</span></div><div className="rd">Real-time voice pipeline &amp; turn-taking.</div><div className="rmeta"><span className="lang"><i style={{ background: "var(--mint)" }} /> TypeScript</span><span>★ 4.1k</span><span>⑂ 312</span></div></div>
             <div className="repo"><div className="rn">@lythe/chat <span className="mit">MIT</span></div><div className="rd">Multi-channel chat runtime &amp; adapters.</div><div className="rmeta"><span className="lang"><i style={{ background: "var(--sky)" }} /> TypeScript</span><span>★ 3.8k</span><span>⑂ 240</span></div></div>
             <div className="repo"><div className="rn">@lythe/eval <span className="mit">MIT</span></div><div className="rd">Replay &amp; evaluation harness for CI.</div><div className="rmeta"><span className="lang"><i style={{ background: "var(--amber)" }} /> Python</span><span>★ 2.6k</span><span>⑂ 188</span></div></div>
@@ -735,7 +813,7 @@ function FinalCTA() {
   return (
     <section className="section finalcta">
       <div className="glow" style={{ width: "560px", height: "320px", background: "rgba(245,179,60,.2)", top: "-60px", left: "50%", transform: "translateX(-50%)" }} />
-      <div className="lx" style={{ position: "relative", zIndex: 1 }}>
+      <div className="lx" style={{ position: "relative", zIndex: 1 }} data-stagger>
         <div style={{ display: "flex", justifyContent: "center", marginBottom: "26px", color: "var(--amber)" }}>
           <Wave count={28} className="" />
         </div>
@@ -763,7 +841,7 @@ function SiteFooter() {
   return (
     <footer className="foot">
       <div className="lx">
-        <div className="foot-top">
+        <div className="foot-top" data-stagger>
           <div className="foot-brand">
             <Brand />
             <p>Developer infrastructure for production AI agents — voice, chat, and the eval to trust them.</p>
@@ -781,8 +859,8 @@ function SiteFooter() {
             </div>
           ))}
         </div>
-        <div className="foot-word">lythe</div>
-        <div className="foot-bot">
+        <div className="foot-word" data-reveal>lythe</div>
+        <div className="foot-bot" data-reveal>
           <span>© 2026 Lythe Labs, Inc.</span>
           <div className="fb-legal">
             <a href="#">Privacy</a><a href="#">Terms</a><a href="#">Security</a><a href="#">SOC 2</a>
@@ -795,8 +873,9 @@ function SiteFooter() {
 
 /* ---------------------------------------------------------------- exports */
 export function LandingPage() {
+  const ref = useReveal();
   return (
-    <div className="lythe-root">
+    <div className="lythe-root" ref={ref}>
       <LytheStyles />
       <div className="lythe-bg" />
       <div className="lythe-grain" />
@@ -819,8 +898,9 @@ export function LandingPage() {
 }
 
 export function HeroShowcase() {
+  const ref = useReveal();
   return (
-    <div className="lythe-root">
+    <div className="lythe-root" ref={ref}>
       <LytheStyles />
       <div className="lythe-bg" />
       <div className="lythe-grain" />
