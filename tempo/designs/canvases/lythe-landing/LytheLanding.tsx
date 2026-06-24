@@ -607,7 +607,7 @@ function VoiceSection() {
             <div className="glow" style={{ width: "220px", height: "220px", background: "rgba(95,227,192,.18)", top: "-40px", right: "-30px" }} />
             <div style={{ position: "relative", zIndex: 1 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
-                <span className="live"><span className="pulse" /> listening</span>
+                <span className="live" style={{ marginLeft: 0 }}><span className="pulse" /> listening</span>
                 <span className="kicker">p50 210ms · p95 310ms</span>
               </div>
               <Wave count={52} className="" />
@@ -911,3 +911,27 @@ export function HeroShowcase() {
     </div>
   );
 }
+
+/* ---------------------------------------------------------------- per-section showcases */
+/* Each renders one section standalone inside the full design atmosphere
+   (CSS vars, fonts, gradient mesh, grain) with the reveal observer attached. */
+function SectionFrame({ children }: { children: React.ReactNode }) {
+  const ref = useReveal();
+  return (
+    <div className="lythe-root" ref={ref}>
+      <LytheStyles />
+      <div className="lythe-bg" />
+      <div className="lythe-grain" />
+      <div className="lythe-content">{children}</div>
+    </div>
+  );
+}
+export function NavShowcase() { return (<SectionFrame><Nav /></SectionFrame>); }
+export function LogoShowcase() { return (<SectionFrame><LogoStrip /></SectionFrame>); }
+export function VoiceShowcase() { return (<SectionFrame><VoiceSection /></SectionFrame>); }
+export function ChatShowcase() { return (<SectionFrame><ChatSection /></SectionFrame>); }
+export function EvalShowcase() { return (<SectionFrame><EvalSection /></SectionFrame>); }
+export function IntegrationsShowcase() { return (<SectionFrame><IntegrationsSection /></SectionFrame>); }
+export function OpenSourceShowcase() { return (<SectionFrame><OpenSourceSection /></SectionFrame>); }
+export function FinalCtaShowcase() { return (<SectionFrame><FinalCTA /></SectionFrame>); }
+export function FooterShowcase() { return (<SectionFrame><SiteFooter /></SectionFrame>); }
