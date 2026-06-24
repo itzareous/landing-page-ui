@@ -24,5 +24,5 @@ export const Mobile: TempoStoryboard = {
 export const Hero: TempoStoryboard = {
   render: () => <Hero2 />,
   name: "Hero — Desktop",
-  layout: { x: 0, y: 6550, width: 1440, height: 1009 },
+  layout: { x: 0, y: 6550, width: 100, height: 1697 },
 };
